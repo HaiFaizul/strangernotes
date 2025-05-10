@@ -1,1 +1,5 @@
+
 project_id = "tvhdbtuoipnelhoeyymp"
+
+[functions.moderate-content]
+verify_jwt = false

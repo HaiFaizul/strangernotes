@@ -1,35 +1,24 @@
 
-import { Link } from "react-router-dom";
+import { Instagram } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="border-t border-muted mt-12 py-8">
-      <div className="container">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-4 md:mb-0">
-            <Link to="/" className="font-cursive text-xl text-stranger">
-              Stranger Notes
-            </Link>
-            <p className="text-sm text-muted-foreground mt-1">
-              Share anonymous inspiration with strangers
-            </p>
-          </div>
-          
-          <div className="flex gap-6">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-stranger">
-              Home
-            </Link>
-            <Link to="/notes" className="text-sm text-muted-foreground hover:text-stranger">
-              All Notes
-            </Link>
-            <Link to="/create" className="text-sm text-muted-foreground hover:text-stranger">
-              Write a Note
-            </Link>
-          </div>
-        </div>
-        
-        <div className="text-center text-xs text-muted-foreground mt-8">
-          © {new Date().getFullYear()} Stranger Notes. All notes are anonymous by default.
+    <footer className="border-t py-6 md:py-0">
+      <div className="container flex flex-col md:flex-row items-center justify-between gap-4 md:h-16">
+        <p className="text-sm text-muted-foreground">
+          Whispers of Strangers — Share anonymous notes with the world
+        </p>
+        <div className="flex items-center gap-4">
+          <a 
+            href="https://www.instagram.com/hai_faizul/"
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Instagram"
+          >
+            <Instagram size={18} />
+            <span className="text-sm">@hai_faizul</span>
+          </a>
         </div>
       </div>
     </footer>

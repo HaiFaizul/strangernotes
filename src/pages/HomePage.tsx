@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import NoteCard from "@/components/NoteCard";
 import { Note } from "@/types/note";
 import { getNotes, initializeStorage } from "@/utils/noteStorage";
-import { ArrowRightIcon, PenIcon } from "lucide-react";
+import { ArrowRightIcon, PenIcon, Instagram } from "lucide-react";
 
 const HomePage = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -14,18 +14,22 @@ const HomePage = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    initializeStorage();
-    const allNotes = getNotes();
-    const prioritizedNotes = [...allNotes].sort((a, b) => {
-      // Prioritize anonymous notes
-      if (a.isAnonymous && !b.isAnonymous) return -1;
-      if (!a.isAnonymous && b.isAnonymous) return 1;
-      // Then sort by date
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    const loadNotes = async () => {
+      await initializeStorage();
+      const allNotes = await getNotes();
+      const prioritizedNotes = [...allNotes].sort((a, b) => {
+        // Prioritize anonymous notes
+        if (a.isAnonymous && !b.isAnonymous) return -1;
+        if (!a.isAnonymous && b.isAnonymous) return 1;
+        // Then sort by date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
+      setNotes(prioritizedNotes);
+      setLoading(false);
+    };
     
-    setNotes(prioritizedNotes);
-    setLoading(false);
+    loadNotes();
   }, []);
 
   const handleNextNote = () => {
@@ -42,9 +46,21 @@ const HomePage = () => {
         <h1 className="text-3xl md:text-4xl font-bold mb-2 text-center">
           Whispers of Strangers
         </h1>
-        <p className="text-center text-muted-foreground mb-10">
+        <p className="text-center text-muted-foreground mb-4">
           Anonymous notes from people just like you, sharing their thoughts, wisdom, and inspiration.
         </p>
+        
+        <div className="flex justify-center mb-6">
+          <a 
+            href="https://www.instagram.com/hai_faizul/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-stranger hover:underline"
+          >
+            <Instagram size={18} />
+            <span>@hai_faizul</span>
+          </a>
+        </div>
 
         {loading ? (
           <div className="h-48 flex items-center justify-center">
@@ -112,6 +128,10 @@ const HomePage = () => {
           </CardContent>
         </Card>
       </section>
+      
+      <footer className="mt-12 text-center text-sm text-muted-foreground">
+        <p>Made with ❤️ | <a href="https://www.instagram.com/hai_faizul/" target="_blank" rel="noopener noreferrer" className="text-stranger hover:underline">@hai_faizul</a></p>
+      </footer>
     </div>
   );
 };

@@ -15,19 +15,23 @@ const NotesPage = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    initializeStorage();
-    const allNotes = getNotes();
-    const prioritizedNotes = [...allNotes].sort((a, b) => {
-      // Prioritize anonymous notes
-      if (a.isAnonymous && !b.isAnonymous) return -1;
-      if (!a.isAnonymous && b.isAnonymous) return 1;
-      // Then sort by date
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    const loadNotes = async () => {
+      await initializeStorage();
+      const allNotes = await getNotes();
+      const prioritizedNotes = [...allNotes].sort((a, b) => {
+        // Prioritize anonymous notes
+        if (a.isAnonymous && !b.isAnonymous) return -1;
+        if (!a.isAnonymous && b.isAnonymous) return 1;
+        // Then sort by date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
+      setNotes(prioritizedNotes);
+      setFilteredNotes(prioritizedNotes);
+      setLoading(false);
+    };
     
-    setNotes(prioritizedNotes);
-    setFilteredNotes(prioritizedNotes);
-    setLoading(false);
+    loadNotes();
   }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {

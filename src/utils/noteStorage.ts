@@ -1,95 +1,120 @@
 
 import { Note, NotesStore } from "@/types/note";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
 const STORAGE_KEY = "stranger-notes";
-const BAD_WORDS = ["badword1", "badword2", "inappropriate"]; // Add real bad words here
+const BAD_WORDS = ["badword1", "badword2", "inappropriate"]; // Basic local filtering
 
 // Initialize storage with sample data if empty
-export const initializeStorage = (): void => {
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    const initialNotes: Note[] = [
+export const initializeStorage = async (): Promise<void> => {
+  const { data: existingNotes } = await supabase.from("notes").select("*").limit(1);
+  
+  if (!existingNotes || existingNotes.length === 0) {
+    const initialNotes: Omit<Note, "id" | "createdAt">[] = [
       {
-        id: "1",
         content: "Sometimes the smallest acts of kindness make the biggest impact on someone's day.",
         author: "",
-        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
         isAnonymous: true,
       },
       {
-        id: "2",
         content: "The universe has a way of guiding you exactly where you need to be, even when it feels like you're lost.",
         author: "",
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
         isAnonymous: true,
       },
       {
-        id: "3",
         content: "Your struggles don't define you, but the way you overcome them does.",
         author: "Maya",
-        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
         isAnonymous: false,
       },
       {
-        id: "4",
         content: "Take a deep breath. You've survived 100% of your worst days so far.",
         author: "",
-        createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), // 5 hours ago
         isAnonymous: true,
       },
       {
-        id: "5",
         content: "It's okay to not be okay. Feel your emotions, then let them go like leaves on a stream.",
         author: "Jamie",
-        createdAt: new Date(Date.now() - 3600000 * 10).toISOString(), // 10 hours ago
         isAnonymous: false,
       },
       {
-        id: "6",
         content: "Growth happens outside your comfort zone. Do one thing today that challenges you.",
         author: "",
-        createdAt: new Date(Date.now() - 86400000 * 4).toISOString(), // 4 days ago
         isAnonymous: true,
       },
       {
-        id: "7",
         content: "We're all just walking each other home.",
         author: "",
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
         isAnonymous: true,
       },
     ];
     
-    saveNotes({ notes: initialNotes });
+    // Insert initial data
+    for (const note of initialNotes) {
+      await addNote(note);
+    }
   }
 };
 
-// Save notes to localStorage
-export const saveNotes = (data: NotesStore): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-};
-
-// Get all notes from localStorage
-export const getNotes = (): Note[] => {
+// Get all notes from Supabase
+export const getNotes = async (): Promise<Note[]> => {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) {
-      initializeStorage();
-      return getNotes();
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("is_flagged", false)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching notes:", error);
+      return [];
     }
-    const parsed = JSON.parse(data) as NotesStore;
-    return parsed.notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return data.map(note => ({
+      id: note.id,
+      content: note.content,
+      author: note.author || "",
+      createdAt: note.created_at,
+      isAnonymous: note.is_anonymous,
+    }));
   } catch (error) {
     console.error("Failed to get notes:", error);
     return [];
   }
 };
 
-// Add a new note
-export const addNote = (note: Omit<Note, "id" | "createdAt">): boolean => {
+// Check content with our moderation edge function
+const moderateContent = async (content: string): Promise<{ isFlagged: boolean, reason?: string }> => {
+  try {
+    // First do a simple local check
+    if (containsInappropriateContent(content)) {
+      return { isFlagged: true, reason: "Contains inappropriate language" };
+    }
+    
+    // Then call the edge function for more advanced moderation
+    const { data, error } = await supabase.functions.invoke("moderate-content", {
+      body: { content },
+    });
+    
+    if (error) {
+      console.error("Error calling moderation function:", error);
+      return { isFlagged: false }; // Default to not flagged on error
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Failed to moderate content:", error);
+    return { isFlagged: false }; // Default to not flagged on error
+  }
+};
+
+// Add a new note to Supabase
+export const addNote = async (note: Omit<Note, "id" | "createdAt">): Promise<boolean> => {
   try {
     // Check for inappropriate content
-    if (containsInappropriateContent(note.content)) {
+    const moderationResult = await moderateContent(note.content);
+    
+    if (moderationResult.isFlagged) {
       toast({
         title: "Note not saved",
         description: "Your note contains inappropriate content.",
@@ -98,14 +123,21 @@ export const addNote = (note: Omit<Note, "id" | "createdAt">): boolean => {
       return false;
     }
     
-    const notes = getNotes();
-    const newNote: Note = {
-      ...note,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
+    const { error } = await supabase.from("notes").insert({
+      content: note.content,
+      author: note.isAnonymous ? null : note.author,
+      is_anonymous: note.isAnonymous,
+    });
     
-    saveNotes({ notes: [newNote, ...notes] });
+    if (error) {
+      console.error("Error adding note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your note. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    }
     
     toast({
       title: "Note saved",
@@ -124,15 +156,10 @@ export const addNote = (note: Omit<Note, "id" | "createdAt">): boolean => {
   }
 };
 
-// Check if content contains inappropriate words
+// Simple check if content contains inappropriate words
 const containsInappropriateContent = (content: string): boolean => {
   const normalized = content.toLowerCase();
   return BAD_WORDS.some(word => normalized.includes(word.toLowerCase()));
-};
-
-// Generate a random ID
-const generateId = (): string => {
-  return Date.now().toString() + Math.floor(Math.random() * 1000).toString();
 };
 
 // Format the created date for display

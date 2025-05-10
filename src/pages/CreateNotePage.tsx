@@ -17,7 +17,7 @@ const CreateNotePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!content.trim()) {
@@ -26,7 +26,7 @@ const CreateNotePage = () => {
     
     setIsSubmitting(true);
     
-    const success = addNote({
+    const success = await addNote({
       content: content.trim(),
       author: isAnonymous ? "" : author.trim(),
       isAnonymous,
