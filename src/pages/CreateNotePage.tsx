@@ -43,13 +43,13 @@ const CreateNotePage = () => {
 
   return (
     <div className="container max-w-2xl py-8 md:py-12">
-      <h1 className="text-3xl font-bold mb-6 text-center">Share a Note</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">Write a Note</h1>
       
       <Card>
         <CardHeader>
-          <CardTitle>Write Your Note</CardTitle>
+          <CardTitle>Share Your Thoughts</CardTitle>
           <CardDescription>
-            Share something inspirational, a piece of wisdom, or a kind thought.
+            Share something helpful, a kind thought, or a bit of wisdom.
           </CardDescription>
         </CardHeader>
         
@@ -59,7 +59,7 @@ const CreateNotePage = () => {
               <Label htmlFor="note-content">Your Note</Label>
               <Textarea
                 id="note-content"
-                placeholder="Write something inspiring or uplifting..."
+                placeholder="Write something helpful or kind..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-32"
@@ -74,7 +74,7 @@ const CreateNotePage = () => {
                 onCheckedChange={setIsAnonymous}
               />
               <Label htmlFor="anonymous-mode" className="cursor-pointer">
-                Post as a Stranger (anonymous)
+                Post as a Stranger (stay anonymous)
               </Label>
             </div>
             
@@ -97,7 +97,7 @@ const CreateNotePage = () => {
                 disabled={!content.trim() || isSubmitting}
               >
                 <SendIcon className="h-4 w-4 mr-2" />
-                {isSubmitting ? "Sharing..." : "Share Note"}
+                {isSubmitting ? "Sending..." : "Share Note"}
               </Button>
             </div>
           </form>

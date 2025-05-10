@@ -87,7 +87,7 @@ const NotesPage = () => {
             <div className="text-center py-16">
               <h2 className="text-xl font-medium mb-2">No notes found</h2>
               <p className="text-muted-foreground mb-6">
-                {searchQuery ? "Try a different search term" : "Be the first to share a note!"}
+                {searchQuery ? "Try a different search" : "Be the first to write a note!"}
               </p>
               <Button asChild>
                 <Link to="/create">
