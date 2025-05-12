@@ -22,9 +22,58 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1962231872605075"
         crossorigin="anonymous"></script>
 
+    <script>
+      // Script to randomize quotes and notes order
+      window.addEventListener('DOMContentLoaded', () => {
+        // Function to shuffle arrays (Fisher-Yates algorithm)
+        function shuffleArray(array) {
+          for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+          return array;
+        }
+
+        // Give priority to recent and famous quotes
+        // This will be applied when the React app loads
+        window.__STRANGER_NOTES_CONFIG__ = {
+          randomizeQuotes: true,
+          randomizeNotes: true,
+          prioritizeFamous: true
+        };
+
+        // Handle initializing with random content if the app uses these settings
+        const intervalId = setInterval(() => {
+          // Look for quote containers or note containers that might be rendered by React
+          const quoteContainers = document.querySelectorAll('.quote-container, .notes-container');
+          if (quoteContainers.length > 0) {
+            // Signal to any potential listeners that randomization should happen
+            const event = new CustomEvent('strangernotesRandomize');
+            document.dispatchEvent(event);
+            clearInterval(intervalId);
+          }
+        }, 500);
+      });
+    </script>
+
   </head>
 
   <body>
     <div id="root"></div>
+    
+    <!-- Instagram link footer - styled to be unobtrusive -->
+    <footer style="position: fixed; bottom: 10px; right: 10px; font-size: 12px; opacity: 0.7;">
+      <a href="https://www.instagram.com/hai_faizul/" target="_blank" rel="noopener noreferrer" 
+         style="color: inherit; text-decoration: none; display: flex; align-items: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" 
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+             style="margin-right: 4px;">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+        </svg>
+        @hai_faizul
+      </a>
+    </footer>
   </body>
 </html>
