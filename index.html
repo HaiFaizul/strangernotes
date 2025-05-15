@@ -23,36 +23,130 @@
         crossorigin="anonymous"></script>
 
     <script>
-      // Script to randomize quotes and notes order
+      // Enhanced script to randomize quotes and notes
       window.addEventListener('DOMContentLoaded', () => {
-        // Function to shuffle arrays (Fisher-Yates algorithm)
-        function shuffleArray(array) {
-          for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
+        // Create namespace for StrangerNotes utilities
+        window.StrangerNotes = window.StrangerNotes || {};
+        
+        // Store previously seen items to avoid repetition
+        const getRecentlyViewed = (key) => {
+          try {
+            return JSON.parse(localStorage.getItem(`strangerNotes_recent_${key}`)) || [];
+          } catch (e) {
+            return [];
           }
-          return array;
-        }
+        };
+        
+        const setRecentlyViewed = (key, id) => {
+          try {
+            const recent = getRecentlyViewed(key).filter(item => item !== id);
+            recent.unshift(id); // Add to beginning
+            if (recent.length > 5) recent.pop(); // Keep only 5 most recent
+            localStorage.setItem(`strangerNotes_recent_${key}`, JSON.stringify(recent));
+          } catch (e) {
+            console.error('Error saving recently viewed items:', e);
+          }
+        };
+        
+        // Randomize content with priority for recent and famous items
+        window.StrangerNotes.randomizeContent = (items, options = {}) => {
+          if (!items || !items.length) return items;
+          
+          const { 
+            prioritizeFamous = true, 
+            avoidRecent = true,
+            recentKey = 'items',
+            idKey = 'id'
+          } = options;
+          
+          // Create a copy to avoid mutating original
+          const itemsCopy = [...items];
+          
+          // Get recently viewed items to avoid showing
+          const recentIds = avoidRecent ? getRecentlyViewed(recentKey) : [];
+          
+          // Calculate priority scores for each item
+          const weightedItems = itemsCopy.map(item => {
+            let weight = 1;
+            
+            // Add weight for famous items
+            if (prioritizeFamous && item.isFamous) {
+              weight += 3;
+            }
+            
+            // Add weight for recent items (if they have timestamp)
+            if (item.timestamp) {
+              const ageInDays = (Date.now() - new Date(item.timestamp).getTime()) / (1000 * 60 * 60 * 24);
+              if (ageInDays < 7) {
+                weight += 2;
+              }
+            }
+            
+            // Reduce weight significantly if seen recently
+            if (recentIds.includes(item[idKey])) {
+              weight *= 0.2;
+            }
+            
+            return { item, weight };
+          });
+          
+          // Fisher-Yates shuffle with weighting
+          for (let i = weightedItems.length - 1; i > 0; i--) {
+            // Generate random index with weighting
+            let totalWeight = 0;
+            for (let j = 0; j <= i; j++) {
+              totalWeight += weightedItems[j].weight;
+            }
+            
+            let random = Math.random() * totalWeight;
+            let j = 0;
+            let sum = weightedItems[0].weight;
+            
+            while (sum < random && j < i) {
+              j++;
+              sum += weightedItems[j].weight;
+            }
+            
+            // Swap
+            [weightedItems[i], weightedItems[j]] = [weightedItems[j], weightedItems[i]];
+          }
+          
+          return weightedItems.map(wi => wi.item);
+        };
+        
+        // Record item as viewed
+        window.StrangerNotes.markAsViewed = (item, type = 'items') => {
+          if (item && item.id) {
+            setRecentlyViewed(type, item.id);
+          }
+        };
 
-        // Give priority to recent and famous quotes
-        // This will be applied when the React app loads
+        // Initialize global config
         window.__STRANGER_NOTES_CONFIG__ = {
           randomizeQuotes: true,
           randomizeNotes: true,
-          prioritizeFamous: true
+          prioritizeFamous: true,
+          avoidRecent: true
         };
 
-        // Handle initializing with random content if the app uses these settings
-        const intervalId = setInterval(() => {
-          // Look for quote containers or note containers that might be rendered by React
-          const quoteContainers = document.querySelectorAll('.quote-container, .notes-container');
-          if (quoteContainers.length > 0) {
-            // Signal to any potential listeners that randomization should happen
-            const event = new CustomEvent('strangernotesRandomize');
-            document.dispatchEvent(event);
-            clearInterval(intervalId);
+        // Dispatch event when document is fully loaded and again when React components mount
+        document.dispatchEvent(new CustomEvent('strangernotesInitialized'));
+        
+        // Look for React components rendering and trigger randomization
+        let componentsLoaded = false;
+        const checkForComponents = () => {
+          // Check for note or quote containers
+          const containers = document.querySelectorAll('.quote-container, .notes-container');
+          if (containers.length > 0 && !componentsLoaded) {
+            componentsLoaded = true;
+            document.dispatchEvent(new CustomEvent('strangernotesRandomize'));
+            clearInterval(checkInterval);
           }
-        }, 500);
+        };
+        
+        const checkInterval = setInterval(checkForComponents, 300);
+        // Clear interval after 10 seconds as fallback
+        setTimeout(() => clearInterval(checkInterval), 10000);
       });
     </script>
 
